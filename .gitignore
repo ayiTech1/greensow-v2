@@ -1,0 +1,60 @@
+# === PYTHON / DJANGO ===
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.sqlite3
+db.sqlite3
+.env
+.env.local
+*.log
+*.pot
+*.pyc
+media/
+staticfiles/
+static/
+
+# Django migrations
+**/migrations/
+!*/migrations/__init__.py
+
+# VSCode
+.vscode/
+
+# === REACT NATIVE / EXPO ===
+node_modules/
+.expo/
+.expo-shared/
+npm-debug.log
+yarn-error.log
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro / Babel / Bundler
+babel.config.js
+metro.config.js
+packager-info.json
+
+# Expo credentials
+*.expo
+*.keystore
+
+# === GENERAL ===
+*.swp
+.DS_Store
+.idea/
+*.iml
+*.bak
+*.tmp
+*.orig
+Thumbs.db
+
+# Git credentials
+*.pem
+*.crt
+*.key
