@@ -1,0 +1,410 @@
+#pip freeze > requirements.txt
+
+
+    def validate(self, attrs)
+        otpcode=request.data.get('otp')
+        try:
+            user_code_obj=OneTimePassword.objects.get(code=otpcode)
+            user = user_code_obj.user
+            if not user.is_verified:
+                user.is_verified=True
+                user.save()
+                return Response({
+                    'message':'account verified successfully'
+                }, status=status.HTTP_200_OK)
+            return Response({
+                'message':'code is invalid user already verified'
+            }, status=status.HTTP_204_NO_CONTENT)
+        except OneTimePassword.DoesNotExist:
+            return Response({
+                'message': 'passcode not provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+class ManagerRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
+
+    class Meta:
+        model = User
+        fields = ['email', 'username', 'phone_number', 'date_of_birth', 'address', 'password', 'password2']
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({'password2': 'Passwords do not match.'})
+
+        dob = attrs.get('date_of_birth')
+        if dob:
+            today = date.today()
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            if age < 16:
+                raise serializers.ValidationError({'date_of_birth': 'User must be at least 16 years old.'})
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password2')
+        return User.objects.create_manager(**validated_data)
+
+
+
+add this if purpose is account_verification:
+tokens = user.tokens()
+if purpose is paswword_reset:
+temp_token = generate_temp_token
+
+
+
+
+class EmployerProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployerProfile
+        fields = ['company_name', 'industry']
+
+    def update(self, instance, validated_data):
+        request = self.context['request']
+        user = request.user
+
+        # Use the manager method to update profile
+        profile = user.__class__.objects.update_employer_profile(user, validated_data)
+
+        # Set status to pending
+        profile.status = 'pending'
+        profile.save()
+
+        return profile
+
+class EmployeeProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeProfile
+        fields = ['id_card', 'passport', 'certificates', 'profile_image']
+
+    def update(self, instance, validated_data):
+        request = self.context['request']
+        user = request.user
+
+        # Call manager to handle file + data updates
+        profile = user.__class__.objects.update_employee_profile(
+            user,
+            validated_data,
+            request.FILES
+        )
+
+        # Set status to pending
+        profile.status = 'pending'
+        profile.save()
+
+        return profile
+
+
+
+
+ 
+class EmployerProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated, IsEmployer]
+    def retrieve(self, request):
+        profile = request.user.employer_profile
+        serializer = EmployerProfileUpdateSerializer(profile)
+        return Response(serializer.data)
+
+    def update(self, request):
+        profile = request.user.employer_profile
+        serializer = EmployerProfileUpdateSerializer(profile, data=request.data, context={'request': request}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Employer profile update submitted for approval.", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+class EmployeeProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated, IsEmployee]
+    def retrieve(self, request):
+        profile = request.user.employee_profile
+        serializer = EmployeeProfileUpdateSerializer(profile)
+        return Response(serializer.data)
+
+    def update(self, request):
+        profile = request.user.employee_profile
+        serializer = EmployeeProfileUpdateSerializer(profile, data=request.data, context={'request': request}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Employee profile update submitted for approval.", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+
+# accounts/managers/profile_manager.py
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from accounts.models import EmployerProfile, EmployeeProfile, User
+
+class ProfileManager:
+    def create_employer_profile(self, user: User, data: dict) -> EmployerProfile:
+        if hasattr(user, 'employer_profile'):
+            raise ValidationError("Employer profile already exists.")
+        return EmployerProfile.objects.create(user=user, **data)
+
+    def update_employer_profile(self, user: User, data: dict) -> EmployerProfile:
+        if not hasattr(user, 'employer_profile'):
+            raise ValidationError("Employer profile does not exist.")
+        profile = user.employer_profile
+        for attr, value in data.items():
+            setattr(profile, attr, value)
+        profile.save()
+        return profile
+
+    def delete_employer_profile(self, user: User) -> None:
+        if not hasattr(user, 'employer_profile'):
+            raise ValidationError("Employer profile does not exist.")
+        user.employer_profile.delete()
+
+    def create_employee_profile(self, user: User, data: dict) -> EmployeeProfile:
+        if hasattr(user, 'employee_profile'):
+            raise ValidationError("Employee profile already exists.")
+        return EmployeeProfile.objects.create(user=user, **data)
+
+    def update_employee_profile(self, user: User, data: dict) -> EmployeeProfile:
+        if not hasattr(user, 'employee_profile'):
+            raise ValidationError("Employee profile does not exist.")
+        profile = user.employee_profile
+        for attr, value in data.items():
+            setattr(profile, attr, value)
+        profile.save()
+        return profile
+
+    def delete_employee_profile(self, user: User) -> None:
+        if not hasattr(user, 'employee_profile'):
+            raise ValidationError("Employee profile does not exist.")
+        user.employee_profile.delete()
+
+
+# accounts/serializers/profile_serializers.py
+from rest_framework import serializers
+from accounts.models import EmployerProfile, EmployeeProfile
+
+class EmployerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployerProfile
+        exclude = ['user']
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeProfile
+        exclude = ['user']
+
+
+# accounts/views/profile_views.py
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from accounts.managers.profile_manager import ProfileManager
+from accounts.serializers.profile_serializers import EmployerProfileSerializer, EmployeeProfileSerializer
+
+class ProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    profile_manager = ProfileManager()
+
+    @action(detail=False, methods=['post'], url_path='employer/create')
+    def create_employer(self, request):
+        serializer = EmployerProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = self.profile_manager.create_employer_profile(request.user, serializer.validated_data)
+        return Response(EmployerProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['put'], url_path='employer/update')
+    def update_employer(self, request):
+        serializer = EmployerProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = self.profile_manager.update_employer_profile(request.user, serializer.validated_data)
+        return Response(EmployerProfileSerializer(profile).data)
+
+    @action(detail=False, methods=['delete'], url_path='employer/delete')
+    def delete_employer(self, request):
+        self.profile_manager.delete_employer_profile(request.user)
+        return Response({"detail": "Employer profile deleted."}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['post'], url_path='employee/create')
+    def create_employee(self, request):
+        serializer = EmployeeProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = self.profile_manager.create_employee_profile(request.user, serializer.validated_data)
+        return Response(EmployeeProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['put'], url_path='employee/update')
+    def update_employee(self, request):
+        serializer = EmployeeProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = self.profile_manager.update_employee_profile(request.user, serializer.validated_data)
+        return Response(EmployeeProfileSerializer(profile).data)
+
+    @action(detail=False, methods=['delete'], url_path='employee/delete')
+    def delete_employee(self, request):
+        self.profile_manager.delete_employee_profile(request.user)
+        return Response({"detail": "Employee profile deleted."}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+# permissions.py
+from rest_framework.permissions import BasePermission
+
+class IsEmployerUser(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_employer
+
+class IsEmployeeUser(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_employee
+
+
+# managers.py
+from django.db import models
+
+class ProfileManager(models.Manager):
+    def create_profile(self, user, **kwargs):
+        profile, created = self.get_or_create(user=user, defaults=kwargs)
+        if not created:
+            for attr, value in kwargs.items():
+                setattr(profile, attr, value)
+            profile.save()
+        return profile
+
+    def update_profile(self, profile, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(profile, attr, value)
+        profile.save()
+        return profile
+
+    def delete_profile(self, profile):
+        profile.delete()
+        return True
+
+
+# serializers.py
+from rest_framework import serializers
+from accounts.models import EmployerProfile, EmployeeProfile
+
+class EmployerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployerProfile
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeProfile
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
+
+# views.py
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from accounts.models import EmployerProfile, EmployeeProfile
+from accounts.serializers import EmployerProfileSerializer, EmployeeProfileSerializer
+from accounts.permissions import IsEmployerUser, IsEmployeeUser
+
+class EmployerProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated, IsEmployerUser]
+
+    def get_object(self, user):
+        return EmployerProfile.objects.filter(user=user).first()
+
+    def create(self, request):
+        serializer = EmployerProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            profile = EmployerProfile.objects.create_profile(user=request.user, **serializer.validated_data)
+            return Response(EmployerProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request):
+        profile = self.get_object(request.user)
+        if not profile:
+            return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(EmployerProfileSerializer(profile).data)
+
+    def update(self, request):
+        profile = self.get_object(request.user)
+        if not profile:
+            return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EmployerProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            profile = EmployerProfile.objects.update_profile(profile, **serializer.validated_data)
+            return Response(EmployerProfileSerializer(profile).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request):
+        profile = self.get_object(request.user)
+        if profile:
+            EmployerProfile.objects.delete_profile(profile)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class EmployeeProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated, IsEmployeeUser]
+
+    def get_object(self, user):
+        return EmployeeProfile.objects.filter(user=user).first()
+
+    def create(self, request):
+        serializer = EmployeeProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            profile = EmployeeProfile.objects.create_profile(user=request.user, **serializer.validated_data)
+            return Response(EmployeeProfileSerializer(profile).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request):
+        profile = self.get_object(request.user)
+        if not profile:
+            return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(EmployeeProfileSerializer(profile).data)
+
+    def update(self, request):
+        profile = self.get_object(request.user)
+        if not profile:
+            return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EmployeeProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            profile = EmployeeProfile.objects.update_profile(profile, **serializer.validated_data)
+            return Response(EmployeeProfileSerializer(profile).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request):
+        profile = self.get_object(request.user)
+        if profile:
+            EmployeeProfile.objects.delete_profile(profile)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# urls.py
+from django.urls import path
+from accounts.views import EmployerProfileViewSet, EmployeeProfileViewSet
+
+employer_profile = EmployerProfileViewSet.as_view({
+    'post': 'create',
+    'get': 'retrieve',
+    'put': 'update',
+    'delete': 'destroy',
+})
+
+employee_profile = EmployeeProfileViewSet.as_view({
+    'post': 'create',
+    'get': 'retrieve',
+    'put': 'update',
+    'delete': 'destroy',
+})
+
+urlpatterns = [
+    path('profile/employer/', employer_profile, name='employer-profile'),
+    path('profile/employee/', employee_profile, name='employee-profile'),
+]
