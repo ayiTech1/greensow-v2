@@ -1,37 +1,41 @@
 from rest_framework import serializers
 from accounts.models.rating import Rating
-from accounts.models.profile import EmployeeProfile, EmployerProfile
 
 class RatingSerializer(serializers.ModelSerializer):
-    employee_id = serializers.PrimaryKeyRelatedField(
-        queryset=EmployeeProfile.objects.all(), required=False, source='employee'
-    )
-    employer_id = serializers.PrimaryKeyRelatedField(
-        queryset=EmployerProfile.objects.all(), required=False, source='employer'
-    )
-
     class Meta:
         model = Rating
-        fields = ['id', 'score', 'comment', 'employee_id', 'employer_id', 'created_at']
+        fields = ['id', 'score', 'comment', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def validate(self, data):
-        employee = data.get('employee')
-        employer = data.get('employer')
+        shift_assignment = self.context['shift_assignment']
+        rater = self.context['request'].user
 
-        if not employee and not employer:
-            raise serializers.ValidationError("Must rate either an employee or an employer.")
-        if employee and employer:
-            raise serializers.ValidationError("Cannot rate both employee and employer at the same time.")
+        # check if rating already exists
+        if Rating.objects.filter(rater=rater, shift_assignment=shift_assignment).exists():
+            raise serializers.ValidationError("You have already rated this shift assignment.")
+
+        if shift_assignment.status != 'completed':
+            raise serializers.ValidationError("You can only rate completed shift assignments.")
+
         return data
 
     def create(self, validated_data):
         rater = self.context['request'].user
-        employee = validated_data.get('employee')
-        employer = validated_data.get('employer')
-        score = validated_data['score']
-        comment = validated_data.get('comment', '')
+        shift_assignment = self.context['shift_assignment']
 
-        if employee:
-            return Rating.objects.rate_employee(rater, employee, score, comment)
-        return Rating.objects.rate_employer(rater, employer, score, comment)
+        if rater.is_employer:
+            employee = shift_assignment.employee.employee_profile
+            employer = None
+        else:
+            employer = shift_assignment.shift.employer.employer_profile
+            employee = None
+
+        return Rating.objects.create(
+            rater=rater,
+            employee=employee,
+            employer=employer,
+            shift_assignment=shift_assignment,
+            score=validated_data['score'],
+            comment=validated_data.get('comment', '')
+        )

@@ -1,10 +1,19 @@
-from shift.stores.constant import SHIFT_ASSIGNMENT
 from django.db import models
 from django.db.models import Q, CheckConstraint
 from django.utils.translation import gettext_lazy as _
 from accounts.models.user import User
 from shift.models.shift import Shift
 
+
+
+
+SHIFT_ASSIGNMENT = [
+    ('taken', 'Taken'),
+    ('ongoing', 'Ongoing'),
+    ('cancelled', 'Cancelled'),
+    ('completed', 'Completed'),
+    ('expired', 'Expired'),
+]
 
 class ShiftAssignment(models.Model):
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='assignments', help_text=_("The shift to which this assignment belongs"), verbose_name=_("Shift"))

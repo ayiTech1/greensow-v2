@@ -2,8 +2,15 @@ from django.db import models
 from django.core.validators import FileExtensionValidator
 from accounts.stores.validators import validate_file_size
 from accounts.models.user import User
-from accounts.stores.constants import APPROVAL_CHOICES
-from accounts.models.managers.profile import ProfileManager
+from accounts.managers.profile import ProfileManager
+
+APPROVAL_CHOICES = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+    ('suspended', 'Suspended'),
+]
+
 
 class EmployerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employer_profile')
@@ -13,6 +20,9 @@ class EmployerProfile(models.Model):
     last_submitted = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    average_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0.0)
+    total_ratings = models.PositiveIntegerField(default=0)
+
 
     objects = ProfileManager()
 
@@ -31,6 +41,8 @@ class EmployeeProfile(models.Model):
     certificates = models.FileField(upload_to='documents/certificates/', blank=True, null=True,
                                     validators=[FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png']), validate_file_size])
     status = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='pending')
+    average_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0.0)
+    total_ratings = models.PositiveIntegerField(default=0)
     last_submitted = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

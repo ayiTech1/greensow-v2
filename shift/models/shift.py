@@ -2,7 +2,14 @@ from django.db import models
 from django.db.models import Q, CheckConstraint, F
 from django.utils.translation import gettext_lazy as _
 from accounts.models.user import User
-from shift.stores.constant import SHIFT  # Example: [('pending', 'Pending'), ('approved', 'Approved'), ...]
+
+SHIFT = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+    ('posted', 'Posted')
+]
+
 
 class Shift(models.Model):
     employer = models.ForeignKey(

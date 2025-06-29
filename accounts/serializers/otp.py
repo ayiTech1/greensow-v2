@@ -1,7 +1,7 @@
 from django.forms import ValidationError
 from rest_framework import serializers
 from accounts.serializers.baseserializers import BaseOTPVerificationSerializer, BaseOTPSerializer
-from accounts.stores.constants import OTP_PURPOSE_ACCOUNT_VERIFICATION, OTP_PURPOSE_PASSWORD_RESET
+from accounts.stores.constants import OTP_ACCOUNT_VERIFICATION, OTP_PASSWORD_RESET
 from accounts.models.otp import OneTimePassword
 from accounts.utils.token_utils import generate_temp_token, mark_temp_token_verified
 
@@ -34,13 +34,13 @@ class VerifyOneTimePasswordSerializer(BaseOTPVerificationSerializer):
         otp_obj = self.get_otp_object(otp_code, purpose)
         self.validate_otp_common(otp_obj)
         user = otp_obj.user
-        if purpose == OTP_PURPOSE_ACCOUNT_VERIFICATION:
+        if purpose == OTP_ACCOUNT_VERIFICATION:
             if not user.is_verified:
                 user.is_verified = True
                 user.save()
             attrs["tokens"] = user.tokens()
 
-        elif purpose == OTP_PURPOSE_PASSWORD_RESET:
+        elif purpose == OTP_PASSWORD_RESET:
             attrs["temp_token"] = generate_temp_token(user)
         otp_obj.delete()
         token = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -56,7 +56,7 @@ class ResendOTPSerializer(BaseOTPSerializer):
         user = request.user
         method = attrs.get('method')
         purpose = self.context.get('purpose')
-        if purpose not in [OTP_PURPOSE_ACCOUNT_VERIFICATION, OTP_PURPOSE_PASSWORD_RESET]:
+        if purpose not in [OTP_ACCOUNT_VERIFICATION, OTP_PASSWORD_RESET]:
             raise serializers.ValidationError({'purpose': 'Invalid or missing purpose.'})
         contact = self.validate_method_and_contact(user, method)
         self.validate_cooldown(user, purpose)

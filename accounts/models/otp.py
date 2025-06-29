@@ -1,7 +1,13 @@
 from django.db import models
 from django.utils import timezone
 from accounts.models.user import User
-from accounts.stores.constants import PURPOSE_CHOICES
+
+
+PURPOSE_CHOICES = [
+        ('account_verification', 'Account Verification'),
+        ('password_reset', 'Password Reset'),
+    ]
+
 
 class OneTimePassword(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

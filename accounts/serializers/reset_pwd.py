@@ -1,10 +1,10 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from accounts.serializers.baseserializers import BaseOTPSerializer
-from accounts.stores.constants import OTP_PURPOSE_PASSWORD_RESET
+from accounts.stores.constants import OTP_PASSWORD_RESET
 from accounts.models.user import  User
 from accounts.models.otp import OneTimePassword
-from accounts.utils.otp_notify import   send_code_to_user_phone
+from accounts.utils.otp_notify import send_code_to_user_phone
 
 
 RESEND_COOLDOWN_SECONDS = 60
@@ -18,7 +18,7 @@ class PasswordResetRequestSerializer(BaseOTPSerializer):
             user = User.objects.get(phone_number=phone_number)
         except User.DoesNotExist:
             raise serializers.ValidationError({'phone_number': "No user is associated with this phone number."})
-        purpose = OTP_PURPOSE_PASSWORD_RESET  
+        purpose = OTP_PASSWORD_RESET  
         self.validate_cooldown(user, purpose)
         attrs['user'] = user
         attrs['phone_number'] = phone_number

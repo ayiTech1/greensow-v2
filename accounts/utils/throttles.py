@@ -1,5 +1,6 @@
 import logging
 from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import AnonRateThrottle
 logger = logging.getLogger(__name__)
 
 class OTPThrottle(SimpleRateThrottle):
@@ -11,3 +12,7 @@ class OTPThrottle(SimpleRateThrottle):
         #log fallback usage
         logger.warning("OTPThrottle fallback to IP throttle.")
         return self.get_ident(request)
+
+
+class SocialLoginThrottle(AnonRateThrottle):
+    scope = 'social_login'

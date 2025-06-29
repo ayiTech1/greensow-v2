@@ -1,8 +1,14 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from rest_framework_simplejwt.tokens import RefreshToken
-from accounts.stores.constants import ROLE_CHOICES
-from accounts.models.managers.user import UserManager
+from accounts.managers.user import UserManager
+
+
+ROLE_CHOICES = [
+    ('manager', 'Manager'),
+    ('employer', 'Employer'),
+    ('employee', 'Employee')
+]
 
 class Role(models.Model):
     name = models.CharField(max_length=20, choices=ROLE_CHOICES, unique=True)
