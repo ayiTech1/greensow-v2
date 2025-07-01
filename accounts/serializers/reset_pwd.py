@@ -4,7 +4,6 @@ from accounts.serializers.baseserializers import BaseOTPSerializer
 from accounts.stores.constants import OTP_PASSWORD_RESET
 from accounts.models.user import  User
 from accounts.models.otp import OneTimePassword
-from accounts.utils.mfa_notify import send_code_to_user_phone
 from accounts.utils.temp_token import generate_temp_token
 
 

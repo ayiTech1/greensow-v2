@@ -6,7 +6,7 @@ from django.contrib.auth import login as django_login
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.apple.views import AppleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
-from accounts.utils.access_token import get_tokens_for_user  # ✅ reusable
+from accounts.utils.access_token import get_tokens_for_user  
 
 class ManagerSocialAuthViewSet(viewsets.ViewSet):
     """

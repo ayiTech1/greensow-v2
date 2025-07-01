@@ -29,7 +29,7 @@ router.register(r'manager/employee-status', ManagerEmployeeProfileStatusViewSet,
 router.register(r'employees/profile', EmployeeProfileManageViewSet, basename='employee-profile')
 router.register(r'employees/profile-status', EmployeeProfileStatusViewSet, basename='employee-profile-status')
 router.register(r'employers/profile', EmployerProfileManageViewSet, basename='employer-profile')
-router.register(r'employers/profile-status', EmployerProfileStatusViewSet, basename='employer-profile')
+router.register(r'employers/profile-status', EmployerProfileStatusViewSet, basename='employer-profile-status')
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'rating', RatingViewSet, basename='rating')
 

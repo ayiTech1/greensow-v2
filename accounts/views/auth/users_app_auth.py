@@ -1,21 +1,14 @@
 from rest_framework.decorators import action, throttle_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework import status
-from accounts.middleware.temp_auth import TempTokenAuthentication
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from accounts.stores.functions import update_last_login
 from accounts.utils.access_token import blacklist_refresh_token
-from accounts.utils.temp_token import generate_temp_token
 from accounts.utils.mfa_notify import send_code_to_user_email
-from accounts.stores.constants import OTP_ACCOUNT_VERIFICATION, OTP_PASSWORD_RESET
 from accounts.utils.throttles import OTPThrottle
-from accounts.serializers.mfa import OTPRequestSerializer, VerifyOneTimePasswordSerializer, ResendOTPSerializer
 from accounts.serializers.register import  UserRegisterSerialiszer
 from accounts.serializers.login import LoginSerializer
-from accounts.serializers.reset_pwd import PasswordResetRequestSerializer, SetNewPasswordSerializer
 from accounts.views.baseviews import BaseViewSet
-from rest_framework.exceptions import ValidationError, AuthenticationFailed
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -63,7 +56,7 @@ class UserAuthViewSet(BaseViewSet):
 
     
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'],  permission_classes=[AllowAny])
     def logout(self, request):
         refresh_token = request.data.get("refresh")
         if not refresh_token:

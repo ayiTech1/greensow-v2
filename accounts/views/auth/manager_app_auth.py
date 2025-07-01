@@ -4,12 +4,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from accounts.utils.access_token import blacklist_refresh_token
-from accounts.utils.temp_token import generate_temp_token
 from accounts.utils.mfa_notify import send_code_to_user_email
 from accounts.serializers.register import ManagerRegisterSerializer
 from accounts.serializers.login import ManagerLoginSerializer
 from accounts.views.baseviews import BaseViewSet
-from rest_framework.exceptions import ValidationError, AuthenticationFailed
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -44,7 +43,7 @@ class ManagerAuthViewSet(BaseViewSet):
             {"user_id": user.id}
         )
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], url_path='logout', )
     def logout(self, request):
         refresh_token = request.data.get("refresh")
         if not refresh_token:

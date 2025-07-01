@@ -1,4 +1,4 @@
-# === PYTHON / DJANGO ===
+docker-compose up --build# === PYTHON / DJANGO ===
 *.pyc
 __pycache__/
 *.pyo
