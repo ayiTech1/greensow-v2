@@ -4,32 +4,53 @@ from accounts.serializers.baseserializers import BaseOTPSerializer
 from accounts.stores.constants import OTP_PASSWORD_RESET
 from accounts.models.user import  User
 from accounts.models.otp import OneTimePassword
-from accounts.utils.otp_notify import send_code_to_user_phone
+from accounts.utils.mfa_notify import send_code_to_user_phone
+from accounts.utils.temp_token import generate_temp_token
 
 
 RESEND_COOLDOWN_SECONDS = 60
 MAX_ATTEMPTS = 5
+   
+class PasswordResetOTPRequestSerializer(BaseOTPSerializer):
+    email = serializers.EmailField()
 
-class PasswordResetRequestSerializer(BaseOTPSerializer):
-    phone_number = serializers.CharField(max_length=13)
     def validate(self, attrs):
-        phone_number = attrs.get('phone_number')
+        email = attrs.get('email')
         try:
-            user = User.objects.get(phone_number=phone_number)
+            user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise serializers.ValidationError({'phone_number': "No user is associated with this phone number."})
-        purpose = OTP_PASSWORD_RESET  
+            raise serializers.ValidationError({'email': 'No user with this email.'})
+
+        method = attrs.get('method')  # 'email' or 'sms'
+        purpose = OTP_PASSWORD_RESET
+
+        contact = self.validate_method_and_contact(user, method)
         self.validate_cooldown(user, purpose)
-        attrs['user'] = user
-        attrs['phone_number'] = phone_number
-        attrs['purpose'] = purpose
+
+        # Generate temp token now — one-time use for password reset
+        temp_token = generate_temp_token(user)
+
+        attrs.update({
+            'user': user,
+            'contact': contact,
+            'method': method,
+            'purpose': purpose,
+            'temp_token': temp_token,
+        })
         return attrs
+
     def save(self):
-        user = self.validated_data['user']
-        phone_number = self.validated_data['phone_number']
-        purpose = self.validated_data['purpose']
-        OneTimePassword.objects.filter(user=user, purpose=purpose).delete()
-        send_code_to_user_phone.delay(phone_number, purpose)
+        data = self.validated_data
+        # Remove any previous OTPs for this purpose
+        OneTimePassword.objects.filter(
+            user=data['user'],
+            purpose=data['purpose']
+        ).delete()
+
+        # Send the OTP
+        self.send_otp(data['method'], data['contact'], data['purpose'])
+
+        return {'temp_token': data['temp_token']}
 
 
 class SetNewPasswordSerializer(serializers.Serializer):

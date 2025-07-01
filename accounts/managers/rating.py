@@ -1,6 +1,5 @@
 
-from accounts import models
-
+from django.db import models
 
 class RatingManager(models.Manager):
     def rate_employee(self, rater, employee, score, shift_assignment, comment=""):

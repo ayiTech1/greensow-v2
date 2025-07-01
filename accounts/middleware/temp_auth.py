@@ -2,7 +2,7 @@
 
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from accounts.utils.token_utils import validate_temp_token
+from accounts.utils.temp_token import validate_temp_token
 from accounts.models import User
 
 class TempTokenAuthentication(BaseAuthentication):

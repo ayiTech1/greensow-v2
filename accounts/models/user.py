@@ -61,9 +61,4 @@ class User(AbstractUser):
     def is_employee(self):
         return self.primary_role and self.primary_role.lower() == 'employee'
 
-    def tokens(self):
-        refresh = RefreshToken.for_user(self)
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token)
-        }
+    

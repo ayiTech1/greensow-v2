@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from shift.models import ShiftAssignment
-from accounts.serializers import RatingSerializer  
+from accounts.serializers.rating import RatingSerializer  
 from core.response import success_response, error_response
 
 class RatingViewSet(viewsets.ViewSet):

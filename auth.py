@@ -4,10 +4,10 @@ from rest_framework.decorators import action, throttle_classes
 from rest_framework.permissions import AllowAny
 from accounts.middleware.temp_auth import TempTokenAuthentication
 from accounts.stores.functions import update_last_login
-from accounts.utils.otp_notify import send_code_to_user_email
+from accounts.utils.mfa_notify import send_code_to_user_email
 from accounts.stores.constants import OTP_ACCOUNT_VERIFICATION, OTP_PASSWORD_RESET
 from accounts.utils.throttles import OTPThrottle
-from accounts.serializers.otp import  OTPRequestSerializer,  VerifyOneTimePasswordSerializer, ResendOTPSerializer
+from accounts.serializers.mfa import  OTPRequestSerializer,  VerifyOneTimePasswordSerializer, ResendOTPSerializer
 from accounts.serializers.register import  ManagerRegisterSerializer, UserRegisterSerialiszer
 from accounts.serializers.login  import   LoginSerializer, ManagerLoginSerializer
 from accounts.serializers.reset_pwd  import  PasswordResetRequestSerializer,  SetNewPasswordSerializer

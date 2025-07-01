@@ -3,15 +3,18 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from accounts.models import OneTimePassword
-from accounts.utils.otp_notify import send_code_to_user_email, send_code_to_user_phone
+from accounts.utils.mfa_notify import send_code_to_user_email, send_code_to_user_phone
 
 MAX_ATTEMPTS = 5 
 RESEND_COOLDOWN_SECONDS = 60  
 
+
+
 class BaseOTPVerificationSerializer(serializers.Serializer):
     otp = serializers.CharField(write_only=True)
 
-    def get_otp_object(self, otp_code, purpose):
+    def get_otp_object(self, otp_code, *, purpose):
+       
         try:
             return OneTimePassword.objects.get(code=otp_code, purpose=purpose)
         except OneTimePassword.DoesNotExist:
@@ -22,6 +25,7 @@ class BaseOTPVerificationSerializer(serializers.Serializer):
             raise ValidationError("OTP code has expired.")
         if otp_obj.failed_attempts >= MAX_ATTEMPTS:
             raise ValidationError("Too many failed attempts. Request a new OTP.")
+
 
 
 class BaseOTPSerializer(serializers.Serializer):

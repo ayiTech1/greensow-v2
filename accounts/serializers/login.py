@@ -1,41 +1,48 @@
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import  AuthenticationFailed
 from django.contrib.auth import authenticate
 from accounts.models import User
 
-class LoginSerializer(serializers.ModelSerializer):
+    
+class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
-    class Meta:
-        model = User
-        fields = ['email', 'password']
-
     def validate(self, attrs):
-        request = self.context.get('request')
-        user = authenticate(request, email=attrs['email'], password=attrs['password'])
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        request = self.context.get("request")
+
+        user = authenticate(request, email=email, password=password)
+
         if not user:
-            raise AuthenticationFailed("Invalid credentials. Please try again.")
+            raise AuthenticationFailed("Invalid credentials.")
 
-        allowed_roles = ['employer', 'employee']
-        if user.role is None or user.role.name.lower() not in allowed_roles:
-            raise AuthenticationFailed("Only employer and employee roles are allowed to log in from this endpoint.")
+        if not user.role or user.role.name.lower() not in ["employer", "employee"]:
+            raise AuthenticationFailed("Only employers and employees are allowed.")
 
-        attrs['user'] = user
+        attrs["user"] = user
         return attrs
 
+    def create(self, validated_data):
+        return validated_data["user"]
 
-class ManagerLoginSerializer(serializers.ModelSerializer):
+
+
+
+class ManagerLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
-    class Meta:
-        model = User
-        fields = ['email', 'password']
-
     def validate(self, attrs):
         request = self.context.get('request')
-        user = authenticate(request, email=attrs['email'], password=attrs['password'])
+
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        user = authenticate(request, email=email, password=password)
+
         if not user:
             raise AuthenticationFailed("Invalid credentials.")
 
@@ -44,3 +51,6 @@ class ManagerLoginSerializer(serializers.ModelSerializer):
 
         attrs['user'] = user
         return attrs
+
+    def create(self, validated_data):
+        return validated_data['user']
